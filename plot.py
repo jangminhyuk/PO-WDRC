@@ -67,6 +67,7 @@ def summarize(out_lq_list, out_dr_list, dist, path, num, plot_results=True):
             ax = fig.gca()
             ax.locator_params(axis='y', nbins=5)
             ax.locator_params(axis='x', nbins=5)
+            fig.set_size_inches(6, 4)
             plt.savefig(path +'states_{}_{}.pdf'.format(i+1, num), dpi=300, bbox_inches="tight")
             plt.clf()
 

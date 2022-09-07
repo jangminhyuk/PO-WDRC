@@ -53,9 +53,9 @@ def main(dist, sim_type, num_sim, num_samples, T, plot_results):
 
     #Path for saving the results
     if sim_type == "multiple":
-        path = "./results/{}/multiple/".format(dist)
+        path = "./results/{}/finite/multiple/".format(dist)
     else:
-        path = "./results/{}/single/".format(dist)
+        path = "./results/{}/finite/single/".format(dist)
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -71,7 +71,7 @@ def main(dist, sim_type, num_sim, num_samples, T, plot_results):
 
     if dist =="uniform":
         M = 0.1*np.eye(ny) #observation noise covariance
-        theta = 0.01 #Wasserstein ball radius
+        theta = 0.03 #Wasserstein ball radius
         #disturbance distribution parameters
         w_max = 0.05*np.ones(nx)
         w_min = -0.05*np.ones(nx)
@@ -85,7 +85,7 @@ def main(dist, sim_type, num_sim, num_samples, T, plot_results):
 
     elif dist == "normal":
         M = 0.2*np.eye(ny) #observation noise covariance
-        theta = 0.8 #Wasserstein ball radius
+        theta = 0.1 #Wasserstein ball radius
         #disturbance distribution parameters
         w_max = None
         w_min = None
@@ -149,7 +149,8 @@ if __name__ == "__main__":
     parser.add_argument('--num_sim', required=False, default=1000, type=int) #number of simulation runs
     parser.add_argument('--num_samples', required=False, default=5, type=int) #number of disturbance samples
     parser.add_argument('--horizon', required=False, default=50, type=int) #horizon length
-    parser.add_argument('--plot', required=False, action="store_true") #plot results
+    parser.add_argument('--plot', required=False, action="store_true") #plot results+
+
 
     args = parser.parse_args()
     np.random.seed(100)

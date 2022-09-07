@@ -24,6 +24,13 @@ class LQG:
             self.w_max = w_max
             self.w_min = w_min
 
+        self.true_v_init = self.normal(np.zeros((self.ny,1)), self.M) #observation noise
+        #Initial state
+        if self.dist=="normal":
+            self.x0_init = self.normal(self.x0_mean, self.x0_cov)
+        elif self.dist=="uniform":
+            self.x0_init = self.uniform(self.x0_max, self.x0_min)
+            
         self.J = np.zeros(self.T+1)
         self.P = np.zeros((self.T+1, self.nx, self.nx))
         self.S = np.zeros((self.T+1, self.nx, self.nx))
@@ -104,15 +111,10 @@ class LQG:
         x_cov = np.zeros((self.T+1, self.nx, self.nx))
         J = np.zeros(self.T+1)
 
-        #Initial state
-        if self.dist=="normal":
-            x[0] = self.normal(self.x0_mean, self.x0_cov)
-        elif self.dist=="uniform":
-            x[0] = self.uniform(self.x0_max, self.x0_min)
-        true_v = self.normal(np.zeros((self.ny,1)), self.M) #observation noise
-        y[0] = self.get_obs(x[0], true_v) #initial observation
+        x[0] = self.x0_init
+        y[0] = self.get_obs(x[0], self.true_v_init) #initial observation
         x_mean[0], x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y[0]) #initial state estimation
-
+        
         for t in range(self.T):
             #disturbance sampling
             if self.dist=="normal":
