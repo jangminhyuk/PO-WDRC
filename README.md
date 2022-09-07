@@ -9,9 +9,8 @@ This repository includes the source code for implementing Wasserstein distributi
 - scipy (>= 1.6.2)
 - matplotlib (>= 3.1.2)
 - pickle5
-- **[CVXPY][https://www.cvxpy.org/]**
-- **[MOSEK (>= 9.3)][https://www.mosek.com/]**
-=======
+- **[CVXPY](https://www.cvxpy.org/)**
+- **[MOSEK (>= 9.3)])https://www.mosek.com/)**
 
 ## Usage
 
