@@ -316,8 +316,8 @@ class PO_WDRC:
         
         
         S_xx_opt = S.value[0:self.nx,0:self.nx]
-        S_xy_opt = S.value[0:self.nx, self.nx:self.nx+self.ny+1]
-        S_yy_opt = S.value[self.nx:self.nx+self.ny+1 , self.nx:self.nx+self.ny+1]
+        S_xy_opt = S.value[0:self.nx, self.nx:self.nx+self.ny]
+        S_yy_opt = S.value[self.nx:self.nx+self.ny , self.nx:self.nx+self.ny]
 
         return S_xx_opt, S_xy_opt, S_yy_opt
     
