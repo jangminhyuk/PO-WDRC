@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#from numba import cuda
 
 import numpy as np
 import time
@@ -80,11 +81,12 @@ class LQG:
         P_ = self.Q + self.A.T @ temp @ P @ self.A
         S_ = self.Q + self.A.T @ (P + S) @ self.A - P_
         r_ = self.A.T @ temp @ (r + P @ mu_hat)
+        # IN Z, np.tract(S+P ...) part means the LQG part
         z_ = z + np.trace((S + P) @ Sigma_hat) \
             + (2*mu_hat - Phi @ r).T @ temp @ r + mu_hat.T @ temp @ P @ mu_hat
         temp2 = np.linalg.solve(self.R, self.B.T)
         K = - temp2 @ temp @ P @ self.A
-        L = - temp2 @ temp @ (r + P @ mu_hat)
+        L = - temp2 @ temp @ (r + P @ mu_hat)   
         return P_, S_, r_, z_, K, L
 
     def get_obs(self, x, v):
@@ -99,7 +101,7 @@ class LQG:
         Phi = self.B @ np.linalg.inv(self.R) @ self.B.T
         for t in range(self.T-1, -1, -1):
              self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t]  = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat[t], self.mu_hat[t])
-
+   
     def forward(self):
         #Apply the controller forward in time.
         start = time.time()
