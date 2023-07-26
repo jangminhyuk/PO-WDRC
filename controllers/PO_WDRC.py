@@ -282,7 +282,7 @@ class PO_WDRC:
         if sigma_min.value <0:
             print("WRONG!!!!!!")
         
-        #USE Schur Complements
+        #use Schur Complements
         #obj function
         obj = cp.Maximize(cp.trace(Y)) 
         
@@ -297,7 +297,7 @@ class PO_WDRC:
                 #S_xx >> 0,
                 S[0:self.nx,0:self.nx] >> 0,
                 #S_yy >> 0,
-                S[self.nx:self.nx+self.ny+1 , self.nx:self.nx+self.ny+1 ] >> 0,
+                S[self.nx:self.nx+self.ny , self.nx:self.nx+self.ny ] >> 0,
                 
                 S >> 0,
                 cp.trace(S + Sigma - 2*V ) <= radi**2,
