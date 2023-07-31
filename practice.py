@@ -9,5 +9,7 @@ nx=2
 
 I  = np.eye(5)
 B = I[3:5,3:5]
-print(I)
-print(B)
+C = -3 + np.random.rand(2,4)*6
+print(C)
+C1 = np.array([[1,0,0,0],[0,1,0,0]])
+print(C1)

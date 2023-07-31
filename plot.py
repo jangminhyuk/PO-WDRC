@@ -6,10 +6,11 @@ import matplotlib.pyplot as plt
 import argparse
 import pickle
 
-def summarize(out_lq_list, out_dr_list, dist, path, num, plot_results=True):
+def summarize(out_lq_list, out_dr_list, out_po_dr_list, dist, path, num, plot_results=True):
     x_list, J_list, y_list, u_list = [], [], [], []
     x_lqr_list, J_lqr_list, y_lqr_list, u_lqr_list = [], [], [], []
-    time_list, time_lqr_list = [], []
+    x_po_list, J_po_list, y_po_list, u_po_list = [], [], [], []
+    time_list, time_lqr_list, time_po_list = [], [], []
 
 
     for out in out_dr_list:
@@ -26,16 +27,29 @@ def summarize(out_lq_list, out_dr_list, dist, path, num, plot_results=True):
          y_lqr_list.append(out['output_traj'])
          u_lqr_list.append(out['control_traj'])
          time_lqr_list.append(out['comp_time'])
+         
+    for out in out_po_dr_list:
+         x_po_list.append(out['state_traj'])
+         J_po_list.append(out['cost'])
+         y_po_list.append(out['output_traj'])
+         u_po_list.append(out['control_traj'])
+         time_po_list.append(out['comp_time'])  
 
     x_mean, J_mean, y_mean, u_mean = np.mean(x_list, axis=0), np.mean(J_list, axis=0), np.mean(y_list, axis=0), np.mean(u_list, axis=0)
     x_lqr_mean, J_lqr_mean, y_lqr_mean, u_lqr_mean = np.mean(x_lqr_list, axis=0), np.mean(J_lqr_list, axis=0), np.mean(y_lqr_list, axis=0), np.mean(u_lqr_list, axis=0)
+    x_po_mean, J_po_mean, y_po_mean, u_po_mean = np.mean(x_po_list, axis=0), np.mean(J_po_list, axis=0), np.mean(y_po_list, axis=0), np.mean(u_po_list, axis=0)
+    
     x_std, J_std, y_std, u_std = np.std(x_list, axis=0), np.std(J_list, axis=0), np.std(y_list, axis=0), np.std(u_list, axis=0)
     x_lqr_std, J_lqr_std, y_lqr_std, u_lqr_std = np.std(x_lqr_list, axis=0), np.std(J_lqr_list, axis=0), np.std(y_lqr_list, axis=0), np.std(u_lqr_list, axis=0)
+    x_po_std, J_po_std, y_po_std, u_po_std = np.std(x_po_list, axis=0), np.std(J_po_list, axis=0), np.std(y_po_list, axis=0), np.std(u_po_list, axis=0)
 
     time_ar = np.array(time_list)
     time_lqr_ar = np.array(time_lqr_list)
+    time_po_ar = np.array(time_po_list)
+    
     J_ar = np.array(J_list)
     J_lqr_ar = np.array(J_lqr_list)
+    J_po_ar = np.array(J_po_list)
 
     if plot_results:
         nx = x_mean.shape[1]
@@ -53,10 +67,15 @@ def summarize(out_lq_list, out_dr_list, dist, path, num, plot_results=True):
                 plt.plot(t, x_lqr_mean[:,i,0], 'tab:red', label='LQG')
                 plt.fill_between(t, x_lqr_mean[:,i, 0] + x_lqr_std[:,i,0],
                                x_lqr_mean[:,i,0] - x_lqr_std[:,i,0], facecolor='tab:red', alpha=0.3)
+            
             plt.plot(t, x_mean[:,i,0], 'tab:blue', label='WDRC')
             plt.fill_between(t, x_mean[:,i,0] + x_std[:,i,0],
                                x_mean[:,i,0] - x_std[:,i,0], facecolor='tab:blue', alpha=0.3)
 
+            plt.plot(t, x_po_mean[:,i,0], 'tab:green', label='PO_WDRC')
+            plt.fill_between(t, x_po_mean[:,i,0] + x_po_std[:,i,0],
+                               x_po_mean[:,i,0] - x_po_std[:,i,0], facecolor='tab:green', alpha=0.3)
+            
             plt.xlabel(r'$t$', fontsize=22)
             plt.ylabel(r'$x_{}$'.format(i+1), fontsize=22)
             plt.legend(fontsize=18)
@@ -82,6 +101,11 @@ def summarize(out_lq_list, out_dr_list, dist, path, num, plot_results=True):
             plt.plot(t, u_mean[:,i,0], 'tab:blue', label='WDRC')
             plt.fill_between(t, u_mean[:,i,0] + u_std[:,i,0],
                              u_mean[:,i,0] - u_std[:,i,0], facecolor='tab:blue', alpha=0.3)
+            
+            plt.plot(t, u_po_mean[:,i,0], 'tab:green', label='PO_WDRC')
+            plt.fill_between(t, u_po_mean[:,i,0] + u_po_std[:,i,0],
+                             u_po_mean[:,i,0] - u_po_std[:,i,0], facecolor='tab:green', alpha=0.3)
+            
             plt.xlabel(r'$t$', fontsize=20)
             plt.ylabel(r'$u_{}$'.format(i+1), fontsize=20)
             plt.legend(fontsize=18)
@@ -102,6 +126,10 @@ def summarize(out_lq_list, out_dr_list, dist, path, num, plot_results=True):
             plt.plot(t, y_mean[:,:,0], 'tab:blue', label='WDRC')
             plt.fill_between(t, y_mean[:,i,0] + y_std[:,i,0],
                              y_mean[:,i, 0] - y_std[:,i,0], facecolor='tab:blue', alpha=0.3)
+            
+            plt.plot(t, y_po_mean[:,:,0], 'tab:green', label='PO_WDRC')
+            plt.fill_between(t, y_po_mean[:,i,0] + y_po_std[:,i,0],
+                             y_po_mean[:,i, 0] - y_po_std[:,i,0], facecolor='tab:green', alpha=0.3)
             plt.xlabel(r'$t$', fontsize=20)
             plt.ylabel(r'$y_{}$'.format(i+1), fontsize=20)
             plt.legend(fontsize=18)
@@ -123,6 +151,9 @@ def summarize(out_lq_list, out_dr_list, dist, path, num, plot_results=True):
 
         plt.plot(t, J_mean, 'tab:blue', label='WDRC')
         plt.fill_between(t, J_mean + 0.25*J_std, J_mean - 0.25*J_std, facecolor='tab:blue', alpha=0.3)
+        
+        plt.plot(t, J_po_mean, 'tab:green', label='PO_WDRC')
+        plt.fill_between(t, J_po_mean + 0.25*J_po_std, J_po_mean - 0.25*J_po_std, facecolor='tab:green', alpha=0.3)
         plt.xlabel(r'$t$', fontsize=18)
         plt.ylabel(r'$V_t(x_t)$', fontsize=18)
         plt.legend(fontsize=18)
@@ -136,20 +167,22 @@ def summarize(out_lq_list, out_dr_list, dist, path, num, plot_results=True):
 
         ax = fig.gca()
         t = np.arange(T+1)
-        max_bin = np.max([J_ar[:,0], J_lqr_ar[:,0]])
-        min_bin = np.min([J_ar[:,0], J_lqr_ar[:,0]])
+        max_bin = np.max([J_ar[:,0], J_lqr_ar[:,0], J_po_ar[:,0]])
+        min_bin = np.min([J_ar[:,0], J_lqr_ar[:,0], J_po_ar[:,0]])
 
         ax.hist(J_ar[:,0], bins=50, range=(min_bin,max_bin), color='tab:blue', label='WDRC', alpha=0.5, linewidth=0.5, edgecolor='tab:blue')
         ax.hist(J_lqr_ar[:,0], bins=50, range=(min_bin,max_bin), color='tab:red', label='LQG', alpha=0.5, linewidth=0.5, edgecolor='tab:red')
+        ax.hist(J_po_ar[:,0], bins=50, range=(min_bin,max_bin), color='tab:green', label='PO_WDRC', alpha=0.5, linewidth=0.5, edgecolor='tab:green')
 
         ax.axvline(J_ar[:,0].mean(), color='navy', linestyle='dashed', linewidth=1.5)
         ax.axvline(J_lqr_ar[:,0].mean(), color='maroon', linestyle='dashed', linewidth=1.5)
+        ax.axvline(J_po_ar[:,0].mean(), color='black', linestyle='dashed', linewidth=1.5)
 
         plt.xticks(fontsize=14)
         plt.yticks(fontsize=14)
 
         handles, labels = plt.gca().get_legend_handles_labels()
-        order = [1, 0]
+        order = [1, 0, 2]
         ax.legend([handles[idx] for idx in order], [labels[idx] for idx in order], fontsize=14)
 
         ax.grid()
@@ -163,8 +196,8 @@ def summarize(out_lq_list, out_dr_list, dist, path, num, plot_results=True):
 
         plt.close('all')
 
-    print('cost: {} ({})'.format(J_mean[0], J_std[0]) , 'cost_lqr:{} ({})'.format(J_lqr_mean[0],J_lqr_std[0]))
-    print('time: {} ({})'.format(time_ar.mean(), time_ar.std()), 'time_lqr: {} ({})'.format(time_lqr_ar.mean(), time_lqr_ar.std()))
+    print('cost_lqr:{} ({})'.format(J_lqr_mean[0],J_lqr_std[0]), 'cost_WDRC: {} ({})'.format(J_mean[0], J_std[0]), 'cost_POWDRC KF: {} ({})'.format(J_po_mean[0], J_po_std[0]) )
+    print('time_lqr: {} ({})'.format(time_lqr_ar.mean(), time_lqr_ar.std()), 'time_WDRC: {} ({})'.format(time_ar.mean(), time_ar.std()), 'time_POWDRC KF: {} ({})'.format(time_po_ar.mean(), time_po_ar.std()))
 
 
 if __name__ == "__main__":
@@ -180,13 +213,16 @@ if __name__ == "__main__":
         #Load data
         lqg_file = open(path + 'lqg.pkl', 'rb')
         wdrc_file = open(path + 'wdrc.pkl', 'rb')
+        po_wdrc_file = open(path + 'po_wdrc.pkl', 'rb')
         lqg_data = pickle.load(lqg_file)
         wdrc_data = pickle.load(wdrc_file)
+        po_wdrc_data = pickle.load(po_wdrc_file)
         lqg_file.close()
         wdrc_file.close()
+        po_wdrc_file.close()
 
         #Plot and Summarize
-        summarize(lqg_data, wdrc_data, args.dist, path, args.num_sim)
+        summarize(lqg_data, wdrc_data, po_wdrc_data, args.dist, path, args.num_sim)
     else:
         path = "./results/{}/single/".format(args.dist)
 
@@ -195,12 +231,14 @@ if __name__ == "__main__":
             #Load data
             lqg_file = open(path + 'lqg.pkl', 'rb')
             wdrc_file = open(path + 'wdrc.pkl', 'rb')
+            po_wdrc_file = open(path + 'po_wdrc.pkl', 'rb')
             lqg_data = pickle.load(lqg_file)
             wdrc_data = pickle.load(wdrc_file)
+            po_wdrc_data = pickle.load(po_wdrc_file)
             lqg_file.close()
             wdrc_file.close()
-
+            po_wdrc_file.close()
             #Plot and Summarize
-            summarize(lqg_data, wdrc_data, args.dist, path, i)
+            summarize(lqg_data, wdrc_data, po_wdrc_data, args.dist, path, i)
             print('---------------------')
 

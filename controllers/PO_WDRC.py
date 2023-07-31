@@ -4,6 +4,7 @@
 import numpy as np
 import time
 from scipy.optimize import minimize
+from scipy.linalg import sqrtm
 import cvxpy as cp
 
 class PO_WDRC:
@@ -260,12 +261,14 @@ class PO_WDRC:
     def solve_DR_sdp(self, Sigma_z, rho):
         #construct problem
         #Variables
-        # S_xx = cp.Variable((self.nx,self.nx), symmetric=True)
-        # S_xy = cp.Variable((self.nx, self.ny))
-        # S_yy = cp.Variable((self.ny, self.ny), symmetric=True)
+        S_xx = cp.Variable((self.nx, self.nx), symmetric=True)
+        S_xy = cp.Variable((self.nx, self.ny))
+        S_yy = cp.Variable((self.ny, self.ny), symmetric=True)
         S = cp.Variable((self.nx+self.ny, self.nx+self.ny), symmetric=True)
-        V = cp.Variable((self.nx+self.ny, self.nx+self.ny), symmetric=True)
-        Y = cp.Variable((self.nx,self.nx), symmetric=True)
+        #V = cp.Variable((self.nx+self.ny, self.nx+self.ny), symmetric=True)
+        V = cp.Variable((self.nx+self.ny, self.nx+self.ny))
+        #Y = cp.Variable((self.nx,self.nx), symmetric=True)
+        Y = cp.Variable((self.nx,self.nx))
         
         #Parameters
         Sigma = cp.Parameter((self.nx+self.ny , self.nx+self.ny))
@@ -274,13 +277,14 @@ class PO_WDRC:
         sigma_min = cp.Parameter(nonneg=True)
         
         Sigma.value = Sigma_z
-        Sigma_root.value = np.linalg.cholesky(Sigma_z)
+        #Sigma_root.value = np.linalg.cholesky(Sigma_z)
+        Sigma_root.value = sqrtm(Sigma_z)
         radi.value = rho
         sigma_min.value = np.min(np.linalg.eigvals(Sigma_z))
         
-        print(sigma_min.value)
+        #print(sigma_min.value)
         if sigma_min.value <0:
-            print("WRONG!!!!!!")
+            print(" Sigma value negative WRONG!!!!!!")
         
         #use Schur Complements
         #obj function
@@ -288,16 +292,20 @@ class PO_WDRC:
         
         #constraints
         constraints = [
-                # S == cp.bmat([[S_xx, S_xy],
-                #             [S_xy.T, S_yy]
-                #             ]),
-                S - cp.bmat([[Y, np.zeros((self.nx, self.ny))],
-                             [np.zeros((self.ny, self.nx)), np.zeros((self.ny, self.ny))]
-                             ]) >> 0,
-                #S_xx >> 0,
-                S[0:self.nx,0:self.nx] >> 0,
-                #S_yy >> 0,
-                S[self.nx:self.nx+self.ny , self.nx:self.nx+self.ny ] >> 0,
+                S == cp.bmat([[S_xx, S_xy],
+                            [S_xy.T, S_yy]
+                            ]),
+                # S - cp.bmat([[Y, np.zeros((self.nx, self.ny))],
+                #              [np.zeros((self.ny, self.nx)), np.zeros((self.ny, self.ny))]
+                #              ]) >> 0,
+                cp.bmat([[S_xx - Y , S_xy],
+                         [S_xy.T, S_yy]
+                         ]) >> 0,
+                
+                S_xx >> 0,
+                #S[0:self.nx,0:self.nx] >> 0,
+                S_yy >> 0,
+                #S[self.nx:self.nx+self.ny , self.nx:self.nx+self.ny ] >> 0,
                 
                 S >> 0,
                 cp.trace(S + Sigma - 2*V ) <= radi**2,
@@ -309,16 +317,31 @@ class PO_WDRC:
         
         prob = cp.Problem(obj, constraints)
         
+        #print(Sigma.value)
+        #print(Sigma_root.value)
+        #print(radi.value)
+        
         prob.solve(solver=cp.MOSEK)
         
         if prob.status in ["infeasible", "unbounded"]:
             print(prob.status, 'False in DRKF!!!!!!!!!!!!!')
         
         
-        S_xx_opt = S.value[0:self.nx,0:self.nx]
-        S_xy_opt = S.value[0:self.nx, self.nx:self.nx+self.ny]
-        S_yy_opt = S.value[self.nx:self.nx+self.ny , self.nx:self.nx+self.ny]
+        # S_xx_opt = S.value[0:self.nx,0:self.nx]
+        # S_xy_opt = S.value[0:self.nx, self.nx:self.nx+self.ny]
+        # S_yy_opt = S.value[self.nx:self.nx+self.ny , self.nx:self.nx+self.ny]
 
+        S_xx_opt = S_xx.value
+        S_xy_opt = S_xy.value
+        S_yy_opt = S_yy.value
+        
+        # print("S_xx")
+        # print(S_xx_opt)
+        # print("S_xy")
+        # print(S_xy_opt)
+        # print("S_yy")
+        # print(S_yy_opt)
+        
         return S_xx_opt, S_xy_opt, S_yy_opt
     
     #DR Kalman FILTER !!!!!!!!!!!!!!!!!!!!!!!!
@@ -339,7 +362,7 @@ class PO_WDRC:
         Sigma_z = np.bmat([[X_cov_, X_cov_ @ self.C.T ],
                            [ self.C @ X_cov_ ,Y_cov_ ] 
                            ])
-        
+        #print(Sigma_z)
         S_xx, S_xy, S_yy = self.solve_DR_sdp(Sigma_z, self.theta) # used theta as a radius!!! (can be changed)
         
         
@@ -359,7 +382,7 @@ class PO_WDRC:
         # Double check Assumption 1
         if lambda_ <= np.max(np.linalg.eigvals(P)):
         #or lambda_ <= np.max(np.linalg.eigvals(P+S)):
-            print("t={}: False!!!!!!!!!".format(t))
+            print("t={}: PO_WDRC riccati False!!!!!!!!!".format(t))
             return None
         r_ = self.A.T @ temp @ (r + P @ mu_hat)
         z_ = z + - lambda_* np.trace(Sigma_hat) \
@@ -383,7 +406,7 @@ class PO_WDRC:
 
         self.P[self.T] = self.Qf
         if self.lambda_ <= np.max(np.linalg.eigvals(self.P[self.T])) or self.lambda_<= np.max(np.linalg.eigvals(self.P[self.T] + self.S[self.T])):
-            print("t={}: False!".format(self.T))
+            print("t={}: POWDRC_Backward_False!".format(self.T))
 
         Phi = self.B @ np.linalg.inv(self.R) @ self.B.T + 1/self.lambda_ * np.eye(self.nx)
         for t in range(self.T-1, -1, -1):
@@ -416,11 +439,12 @@ class PO_WDRC:
             mu_wc[t] = self.H[t] @ x_mean[t] + self.h[t] #worst-case mean
             sigma_wc[t], _, status = self.solve_sdp(self.sdp_prob, x_cov[t], self.P[t+1], self.S[t+1], self.Sigma_hat[t])
             if status in ["infeasible", "unbounded"]:
-                print(status, 'False!!!!!!!!!!!!!')
+                print(status, 'POWDRC worst Sigma_w False!!!!!!!!!!!!!')
                 
-            if np.min(self.C @ (self.A @ x_cov[t] @ self.A + sigma_wc[t]) @ self.C.T + self.M) < 0:
-                print('False!!!!!!!!!!!!!')
-                break
+            # if np.min(self.C @ (self.A @ x_cov[t] @ self.A + sigma_wc[t]) @ self.C.T + self.M) < 0:
+            #     print('POWDRC forward False!!!!!!!!!!!!!')
+            #     break
+            
             #print('old:', self.g[t], 'new:', sigma_wc[t])
             if self.dist=="normal":
                 true_w = self.normal(self.mu_w, self.Sigma_w)

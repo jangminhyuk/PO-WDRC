@@ -45,6 +45,7 @@ def create_matrices(nx, ny, nu):
     A = 1.02*A_/(np.max([np.abs(max_eig),np.abs(min_eig)])) #The matrix A is scaled so that it is unstable ??
     B = -3 + np.random.rand(nx,nu)*6
     C = -3 + np.random.rand(ny,nx)*6
+    #C = np.array([[1,0,0,0],[0,1,0,0]]) # only first two variables are observable
     return A, B, C
 
 def save_data(path, data):
@@ -124,7 +125,7 @@ def main(dist, sim_type, num_sim, num_samples, T, plot_results):
     output_po_wdrc_list = []
     
     #Initialize WDRC and LQG controllers
-    #wdrc = WDRC(theta, T, dist, system_data, mu_hat, Sigma_hat, x0_mean, x0_cov, x0_max, x0_min, mu_w, Sigma_w, w_max, w_min)
+    wdrc = WDRC(theta, T, dist, system_data, mu_hat, Sigma_hat, x0_mean, x0_cov, x0_max, x0_min, mu_w, Sigma_w, w_max, w_min)
     po_wdrc = PO_WDRC(theta, T, dist, system_data, mu_hat, Sigma_hat, M_hat, M0, x0_mean, x0_cov, x0_max, x0_min, mu_w, Sigma_w, w_max, w_min)
     lqg = LQG(T, dist, system_data, mu_hat, Sigma_hat, x0_mean, x0_cov, x0_max, x0_min, mu_w, Sigma_w, w_max, w_min)
 
@@ -133,36 +134,36 @@ def main(dist, sim_type, num_sim, num_samples, T, plot_results):
         print('i: ', i)
         
         #Recursively compute the value function and control matrices
-        #wdrc.backward()
+        wdrc.backward()
         lqg.backward()
         po_wdrc.backward()
         
         #Perform state estimation and apply the controller
-        #output_wdrc = wdrc.forward()
+        output_wdrc = wdrc.forward()
         output_lqg = lqg.forward()
         output_po_wdrc = po_wdrc.forward()
         
-        #output_wdrc_list.append(output_wdrc)
+        output_wdrc_list.append(output_wdrc)
         output_lqg_list.append(output_lqg)
         output_po_wdrc_list.append(output_po_wdrc)
         
-        #print('cost (WDRC):', output_wdrc['cost'][0], 'time (WDRC):', output_wdrc['comp_time'])
         print('cost (LQG):', output_lqg['cost'][0], 'time (LQG):', output_lqg['comp_time'])
+        print('cost (WDRC):', output_wdrc['cost'][0], 'time (WDRC):', output_wdrc['comp_time'])
         print('cost (PO_WDRC):', output_po_wdrc['cost'][0], 'time (PO_WDRC):', output_po_wdrc['comp_time'])
 
     #Save results
-    save_data(path + 'wdrc.pkl', output_wdrc_list)
     save_data(path + 'lqg.pkl', output_lqg_list)
+    save_data(path + 'wdrc.pkl', output_wdrc_list)
     save_data(path + 'po_wdrc.pkl', output_po_wdrc_list)
 
     #Summarize and plot the results
     print('\n-------Summary-------')
     if sim_type == "multiple":
-        summarize(output_lqg_list, output_wdrc_list, dist, path, num_sim, plot_results)
+        summarize(output_lqg_list, output_wdrc_list, output_po_wdrc_list, dist, path, num_sim, plot_results)
     else:
         for i in range(num_sim):
             print('i: ', i)
-            summarize([output_lqg_list[i]], [output_wdrc_list[i]], dist, path, i, plot_results)
+            summarize([output_lqg_list[i]], [output_wdrc_list[i]], [output_po_wdrc_list[i]], dist, path, i, plot_results)
             print('---------------------')
 
 if __name__ == "__main__":
@@ -177,4 +178,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     np.random.seed(100)
-    main(args.dist, args.sim_type, args.num_sim, args.num_samples, args.horizon, args.plot)
+    main(args.dist, args.sim_type, args.num_sim, args.num_samples, args.horizon, args.plot) 
