@@ -1,7 +1,7 @@
 Wasserstein Distributionally Robust Control of Partially Observable Linear Systems
 ====================================================
 
-This repository includes the source code for implementing Wasserstein distributionally robust (WDR) and linear-quadratic-Gaussian (LQG) controllers.
+This repository includes the source code for implementing Wasserstein distributionally robust (WDR) and linear-quadratic-Gaussian (LQG) and Partially Observable Wasserstein Distributionally Robust (PO_WDR) controllers.
 
 ## Requirements
 - Python (>= 3.5)
