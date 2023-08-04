@@ -81,10 +81,10 @@ class PO_WDRC:
         
         # BELOW SHOULD BE OPENED AFTER THE EXPERIMENT!!!!!
         
-        # output = minimize(self.objective, x0=np.array([2*self.infimum_penalty]), method='L-BFGS-B', options={'maxfun': 100000, 'disp': False, 'maxiter': 100000})
-        # print(output.message)
-        # optimal_penalty = output.x[0]
-        optimal_penalty = 10 # for test!
+        output = minimize(self.objective, x0=np.array([2*self.infimum_penalty]), method='L-BFGS-B', options={'maxfun': 100000, 'disp': False, 'maxiter': 100000})
+        print(output.message)
+        optimal_penalty = output.x[0]
+        #optimal_penalty = 10 # for test!
         print("Optimal penalty (lambda_star):", optimal_penalty)
         return optimal_penalty
 
@@ -382,8 +382,8 @@ class PO_WDRC:
         
         # result!!
         x_new = S_xy @ np.linalg.inv(S_yy) @ (y - y_) + x_
-        X_cov_new = S_xx
-        
+        #X_cov_new = S_xx
+        X_cov_new = S_xx - S_xy @ np.linalg.inv(S_yy) @ S_xy.T
         return x_new, X_cov_new
 
     def riccati(self, Phi, P, S, r, z, Sigma_hat, mu_hat, lambda_, t):
