@@ -72,7 +72,7 @@ def summarize(out_lq_list, out_dr_list, out_po_dr_list, dist, path, num, plot_re
             plt.fill_between(t, x_mean[:,i,0] + x_std[:,i,0],
                                x_mean[:,i,0] - x_std[:,i,0], facecolor='tab:blue', alpha=0.3)
 
-            plt.plot(t, x_po_mean[:,i,0], 'tab:green', label='PO_WDRC')
+            plt.plot(t, x_po_mean[:,i,0], 'tab:green', label='DR_KF_WDRC')
             plt.fill_between(t, x_po_mean[:,i,0] + x_po_std[:,i,0],
                                x_po_mean[:,i,0] - x_po_std[:,i,0], facecolor='tab:green', alpha=0.3)
             
@@ -102,7 +102,7 @@ def summarize(out_lq_list, out_dr_list, out_po_dr_list, dist, path, num, plot_re
             plt.fill_between(t, u_mean[:,i,0] + u_std[:,i,0],
                              u_mean[:,i,0] - u_std[:,i,0], facecolor='tab:blue', alpha=0.3)
             
-            plt.plot(t, u_po_mean[:,i,0], 'tab:green', label='PO_WDRC')
+            plt.plot(t, u_po_mean[:,i,0], 'tab:green', label='DR_KF_WDRC')
             plt.fill_between(t, u_po_mean[:,i,0] + u_po_std[:,i,0],
                              u_po_mean[:,i,0] - u_po_std[:,i,0], facecolor='tab:green', alpha=0.3)
             
@@ -127,7 +127,7 @@ def summarize(out_lq_list, out_dr_list, out_po_dr_list, dist, path, num, plot_re
             plt.fill_between(t, y_mean[:,i,0] + y_std[:,i,0],
                              y_mean[:,i, 0] - y_std[:,i,0], facecolor='tab:blue', alpha=0.3)
             
-            plt.plot(t, y_po_mean[:,:,0], 'tab:green', label='PO_WDRC')
+            plt.plot(t, y_po_mean[:,:,0], 'tab:green', label='DR_KF_WDRC')
             plt.fill_between(t, y_po_mean[:,i,0] + y_po_std[:,i,0],
                              y_po_mean[:,i, 0] - y_po_std[:,i,0], facecolor='tab:green', alpha=0.3)
             plt.xlabel(r'$t$', fontsize=20)
@@ -152,7 +152,7 @@ def summarize(out_lq_list, out_dr_list, out_po_dr_list, dist, path, num, plot_re
         plt.plot(t, J_mean, 'tab:blue', label='WDRC')
         plt.fill_between(t, J_mean + 0.25*J_std, J_mean - 0.25*J_std, facecolor='tab:blue', alpha=0.3)
         
-        plt.plot(t, J_po_mean, 'tab:green', label='PO_WDRC')
+        plt.plot(t, J_po_mean, 'tab:green', label='DR_KF_WDRC')
         plt.fill_between(t, J_po_mean + 0.25*J_po_std, J_po_mean - 0.25*J_po_std, facecolor='tab:green', alpha=0.3)
         plt.xlabel(r'$t$', fontsize=18)
         plt.ylabel(r'$V_t(x_t)$', fontsize=18)
@@ -172,11 +172,11 @@ def summarize(out_lq_list, out_dr_list, out_po_dr_list, dist, path, num, plot_re
 
         ax.hist(J_ar[:,0], bins=50, range=(min_bin,max_bin), color='tab:blue', label='WDRC', alpha=0.5, linewidth=0.5, edgecolor='tab:blue')
         ax.hist(J_lqr_ar[:,0], bins=50, range=(min_bin,max_bin), color='tab:red', label='LQG', alpha=0.5, linewidth=0.5, edgecolor='tab:red')
-        ax.hist(J_po_ar[:,0], bins=50, range=(min_bin,max_bin), color='tab:green', label='PO_WDRC', alpha=0.5, linewidth=0.5, edgecolor='tab:green')
+        ax.hist(J_po_ar[:,0], bins=50, range=(min_bin,max_bin), color='tab:green', label='DR_KF_WDRC', alpha=0.5, linewidth=0.5, edgecolor='tab:green')
 
         ax.axvline(J_ar[:,0].mean(), color='navy', linestyle='dashed', linewidth=1.5)
         ax.axvline(J_lqr_ar[:,0].mean(), color='maroon', linestyle='dashed', linewidth=1.5)
-        ax.axvline(J_po_ar[:,0].mean(), color='black', linestyle='dashed', linewidth=1.5)
+        ax.axvline(J_po_ar[:,0].mean(), color='green', linestyle='dashed', linewidth=1.5)
 
         plt.xticks(fontsize=14)
         plt.yticks(fontsize=14)
@@ -196,8 +196,8 @@ def summarize(out_lq_list, out_dr_list, out_po_dr_list, dist, path, num, plot_re
 
         plt.close('all')
 
-    print('cost_lqr:{} ({})'.format(J_lqr_mean[0],J_lqr_std[0]), 'cost_WDRC: {} ({})'.format(J_mean[0], J_std[0]), 'cost_POWDRC KF: {} ({})'.format(J_po_mean[0], J_po_std[0]) )
-    print('time_lqr: {} ({})'.format(time_lqr_ar.mean(), time_lqr_ar.std()), 'time_WDRC: {} ({})'.format(time_ar.mean(), time_ar.std()), 'time_POWDRC KF: {} ({})'.format(time_po_ar.mean(), time_po_ar.std()))
+    print('cost_lqr:{} ({})'.format(J_lqr_mean[0],J_lqr_std[0]), 'cost_WDRC: {} ({})'.format(J_mean[0], J_std[0]), 'cost_DR_KF_WDRC: {} ({})'.format(J_po_mean[0], J_po_std[0]) )
+    print('time_lqr: {} ({})'.format(time_lqr_ar.mean(), time_lqr_ar.std()), 'time_WDRC: {} ({})'.format(time_ar.mean(), time_ar.std()), 'time_DR_KF_WDRC: {} ({})'.format(time_po_ar.mean(), time_po_ar.std()))
 
 
 if __name__ == "__main__":
