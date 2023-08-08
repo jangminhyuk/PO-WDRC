@@ -118,8 +118,8 @@ class LQG:
         self.P[self.T] = self.Qf
         Phi = self.B @ np.linalg.inv(self.R) @ self.B.T
         for t in range(self.T-1, -1, -1):
-            #self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t]  = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat[t], self.mu_hat[t])
-            self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t]  = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat0, self.mu_hat0) #
+            self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t]  = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat[t], self.mu_hat[t])
+            #self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t]  = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat0, self.mu_hat0) #
    
     def forward(self, true_w, true_v):
         #Apply the controller forward in time.
@@ -155,8 +155,8 @@ class LQG:
             y[t+1] = self.get_obs(x[t+1], true_v[t].reshape((-1,1)))
 
             #Update the state estimation (using the nominal mean and covariance)
-            #x_mean[t+1], x_cov[t+1] = self.kalman_filter(x_mean[t], x_cov[t], y[t+1], self.M_hat[t], self.mu_hat[t], self.Sigma_hat[t], u=u[t])
-            x_mean[t+1], x_cov[t+1] = self.kalman_filter(x_mean[t], x_cov[t], y[t+1], self.M0, self.mu_hat0, self.Sigma_hat0, u=u[t])
+            x_mean[t+1], x_cov[t+1] = self.kalman_filter(x_mean[t], x_cov[t], y[t+1], self.M_hat[t], self.mu_hat[t], self.Sigma_hat[t], u=u[t])
+            #x_mean[t+1], x_cov[t+1] = self.kalman_filter(x_mean[t], x_cov[t], y[t+1], self.M0, self.mu_hat0, self.Sigma_hat0, u=u[t])
 
             #Compute the total cost
             J[self.T] = x[self.T].T @ self.Qf @ x[self.T]

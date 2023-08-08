@@ -85,7 +85,7 @@ class PO_WDRC:
         print(output.message)
         optimal_penalty = output.x[0]
         #optimal_penalty = 10 # for test!
-        print("Optimal penalty (lambda_star):", optimal_penalty)
+        print("DRKF Optimal penalty (lambda_star):", optimal_penalty)
         return optimal_penalty
 
     def objective(self, penalty):
@@ -108,11 +108,12 @@ class PO_WDRC:
         for t in range(self.T-1, -1, -1):
 
             Phi = self.B @ np.linalg.inv(self.R) @ self.B.T + 1/penalty * np.eye(self.nx)
-            P[t], S[t], r[t], z[t], K, L, H, h, g = self.riccati(Phi, P[t+1], S[t+1], r[t+1], z[t+1], self.Sigma_hat0, self.mu_hat0, penalty, t)
+            #P[t], S[t], r[t], z[t], K, L, H, h, g = self.riccati(Phi, P[t+1], S[t+1], r[t+1], z[t+1], self.Sigma_hat0, self.mu_hat0, penalty, t)
+            P[t], S[t], r[t], z[t], K, L, H, h, g = self.riccati(Phi, P[t+1], S[t+1], r[t+1], z[t+1], self.Sigma_hat[t], self.mu_hat[t], penalty, t)
             if np.max(np.linalg.eigvals(P[t])) > penalty:
                 return np.inf
         
-        sdp_prob = self.gen_sdp(penalty, self.M0)
+        #sdp_prob = self.gen_sdp(penalty, self.M0)
         x_cov = np.zeros((self.T, self.nx, self.nx))
         sigma_wc = np.zeros((self.T, self.nx, self.nx))
         y = self.get_obs(self.x0_init, self.true_v_init)
@@ -120,14 +121,15 @@ class PO_WDRC:
         x0_mean, x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y, self.M0) #initial state estimation
         
         for t in range(0, self.T-1):
-            x_cov[t+1] = self.kalman_filter_cov(x_cov[t], self.M0, sigma_wc[t])
-            #sdp_prob = self.gen_sdp(penalty, self.M_hat[t])
-            sigma_wc[t], z_tilde[t], status = self.solve_sdp(sdp_prob, x_cov[t], P[t+1], S[t+1], self.Sigma_hat0)
+            #x_cov[t+1] = self.kalman_filter_cov(x_cov[t], self.M0, sigma_wc[t])
+            x_cov[t+1] = self.kalman_filter_cov(x_cov[t], self.M_hat[t], sigma_wc[t])
+            sdp_prob = self.gen_sdp(penalty, self.M_hat[t])
+            #sigma_wc[t], z_tilde[t], status = self.solve_sdp(sdp_prob, x_cov[t], P[t+1], S[t+1], self.Sigma_hat0)
+            sigma_wc[t], z_tilde[t], status = self.solve_sdp(sdp_prob, x_cov[t], P[t+1], S[t+1], self.Sigma_hat[t])
             if status in ["infeasible", "unbounded"]:
                 print(status)
                 return np.inf
                 
-
         
         return penalty*self.T*self.theta**2 + (x0_mean.T @ P[0] @ x0_mean)[0][0] + 2*(r[0].T @ x0_mean)[0][0] + z[0][0] + np.trace((P[0] + S[0]) @ x_cov[0]) + z_tilde.sum()
 
@@ -156,7 +158,7 @@ class PO_WDRC:
                 return False
         for t in range(self.T-1, -1, -1):
             Phi = self.B @ np.linalg.inv(self.R) @ self.B.T + 1/penalty * np.eye(self.nx)
-            P, S, r, z, K, L, H, h, g = self.riccati(Phi, P, S, r, z, self.Sigma_hat0, self.mu_hat0, penalty, t)
+            P, S, r, z, K, L, H, h, g = self.riccati(Phi, P, S, r, z, self.Sigma_hat[t], self.mu_hat[t], penalty, t)
             if np.max(np.linalg.eigvals(P)) >= penalty: # if there is e.v of P larger than P, it doens't satifsy assumption1
                 return False
         return True
@@ -424,8 +426,8 @@ class PO_WDRC:
 
         Phi = self.B @ np.linalg.inv(self.R) @ self.B.T + 1/self.lambda_ * np.eye(self.nx)
         for t in range(self.T-1, -1, -1):
-            #self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t], self.H[t], self.h[t], self.g[t] = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat[t], self.mu_hat[t], self.lambda_, t)
-            self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t], self.H[t], self.h[t], self.g[t] = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat0, self.mu_hat0, self.lambda_, t)
+            self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t], self.H[t], self.h[t], self.g[t] = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat[t], self.mu_hat[t], self.lambda_, t)
+            #self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t], self.H[t], self.h[t], self.g[t] = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat0, self.mu_hat0, self.lambda_, t)
     
     def forward(self, true_w, true_v):
         #Apply the controller forward in time.
@@ -452,11 +454,11 @@ class PO_WDRC:
         for t in range(self.T):
             #disturbance sampling
             mu_wc[t] = self.H[t] @ x_mean[t] + self.h[t] #worst-case mean
-            #sdp_prob = self.gen_sdp(self.lambda_, self.M_hat[t])
-            sdp_prob = self.gen_sdp(self.lambda_, self.M0)
+            sdp_prob = self.gen_sdp(self.lambda_, self.M_hat[t])
+            #sdp_prob = self.gen_sdp(self.lambda_, self.M0)
             
-            #sigma_wc[t], _, status = self.solve_sdp(sdp_prob, x_cov[t], self.P[t+1], self.S[t+1], self.Sigma_hat[t])
-            sigma_wc[t], _, status = self.solve_sdp(sdp_prob, x_cov[t], self.P[t+1], self.S[t+1], self.Sigma_hat0)
+            sigma_wc[t], _, status = self.solve_sdp(sdp_prob, x_cov[t], self.P[t+1], self.S[t+1], self.Sigma_hat[t])
+            #sigma_wc[t], _, status = self.solve_sdp(sdp_prob, x_cov[t], self.P[t+1], self.S[t+1], self.Sigma_hat0)
             if status in ["infeasible", "unbounded"]:
                 print(status, 'POWDRC worst Sigma_w False!!!!!!!!!!!!!')
                 
@@ -484,8 +486,8 @@ class PO_WDRC:
 
             #print("PO_WDRC time step: ",t)
             #Update the state estimation (using the worst-case mean and covariance)
-            #x_mean[t+1], x_cov[t+1] = self.DR_kalman_filter(x_mean[t], x_cov[t], self.M_hat[t], y[t+1], mu_wc[t], sigma_wc[t], u=u[t])
-            x_mean[t+1], x_cov[t+1] = self.DR_kalman_filter(x_mean[t], x_cov[t], self.M0, y[t+1], mu_wc[t], sigma_wc[t], u=u[t])
+            x_mean[t+1], x_cov[t+1] = self.DR_kalman_filter(x_mean[t], x_cov[t], self.M_hat[t], y[t+1], mu_wc[t], sigma_wc[t], u=u[t])
+            #x_mean[t+1], x_cov[t+1] = self.DR_kalman_filter(x_mean[t], x_cov[t], self.M0, y[t+1], mu_wc[t], sigma_wc[t], u=u[t])
 
             #Compute the total cost
             J[self.T] = x[self.T].T @ self.Qf @ x[self.T]

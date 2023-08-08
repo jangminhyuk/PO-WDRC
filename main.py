@@ -68,9 +68,9 @@ def main(dist, noise_dist, sim_type, num_sim, num_samples, num_noise_samples, T,
 
     #Path for saving the results
     if sim_type == "multiple":
-        path = "./results/{}/finite/multiple/".format(dist)
+        path = "./results/{}/{}/finite/multiple/".format(dist,noise_dist)
     else:
-        path = "./results/{}/finite/single/".format(dist)
+        path = "./results/{}/{}/finite/single/".format(dist,noise_dist)
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -146,7 +146,7 @@ def main(dist, noise_dist, sim_type, num_sim, num_samples, num_noise_samples, T,
     # observation noises
     _, M0 = gen_sample_dist(noise_dist, 1, num_noise_samples, mu_w=mu_v, Sigma_w=M, w_max=v_max, w_min=v_min) # generate initial M0
     
-    #wil not be used!
+    
     v_hat, M_hat = gen_sample_dist(noise_dist, T, num_noise_samples, mu_w=mu_v, Sigma_w=M, w_max=v_max, w_min=v_min) # generate M hat!!!!!!!
     
     
