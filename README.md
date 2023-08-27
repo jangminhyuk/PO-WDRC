@@ -24,7 +24,7 @@ The parameters can be changed by adding additional command-line arguments:
 python main.py --dist normal --sim_type multiple --num_sim 1000 --num_samples 5 --horizon 50 --plot
 ```
 
-The results for both controllers are saved in separate pickle files in `/results/<dist>/<sim_type>/`. If command-line argument `--plot` is invoked, the state, control, output trajectories, and cost histograms are plotted.
+The results for both controllers are saved in separate pickle files in `/results/<dist>/<noise_dist>/<sim_type>/`. If command-line argument `--plot` is invoked, the state, control, output trajectories, and cost histograms are plotted.
 
 
 An example output with default settings:

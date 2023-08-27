@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-#from numba import cuda
 
 import numpy as np
 import time
 
 class LQG:
-    def __init__(self, T, dist, noise_dist, system_data, mu_hat, Sigma_hat, M_hat, M0, x0_mean, x0_cov, x0_max, x0_min, mu_w, Sigma_w, w_max, w_min, v_max, v_min, true_v_init):
+    def __init__(self, T, dist, noise_dist, system_data, mu_hat, Sigma_hat, M_hat, x0_mean, x0_cov, x0_max, x0_min, mu_w, Sigma_w, w_max, w_min, v_max, v_min, true_v_init):
         self.dist = dist
         self.noise_dist = noise_dist
         self.T = T
@@ -21,7 +20,7 @@ class LQG:
         self.mu_hat0 = mu_hat[0]
         self.Sigma_hat0 = Sigma_hat[0]
         self.M_hat = M_hat
-        self.M0 = M0
+        #self.M0 = M0
         self.mu_w = mu_w
         self.Sigma_w = Sigma_w
         if self.dist=="uniform":
@@ -134,7 +133,7 @@ class LQG:
 
         x[0] = self.x0_init
         y[0] = self.get_obs(x[0], self.true_v_init) #initial observation
-        x_mean[0], x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y[0], self.M0) #initial state estimation
+        x_mean[0], x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y[0], self.M_hat[0]) #initial state estimation
         
         for t in range(self.T):
             # #disturbance sampling

@@ -8,7 +8,7 @@ from scipy.linalg import sqrtm
 import cvxpy as cp
 
 class PO_WDRC:
-    def __init__(self, theta, T, dist, noise_dist, system_data, mu_hat, Sigma_hat, M_hat, M0, x0_mean, x0_cov, x0_max, x0_min, mu_w, Sigma_w, w_max, w_min, v_max, v_min, true_v_init):
+    def __init__(self, theta, T, dist, noise_dist, system_data, mu_hat, Sigma_hat, M_hat, x0_mean, x0_cov, x0_max, x0_min, mu_w, Sigma_w, w_max, w_min, v_max, v_min, true_v_init):
         self.dist = dist
         self.noise_dist = noise_dist
         self.T = T
@@ -23,7 +23,7 @@ class PO_WDRC:
         self.mu_hat0 = mu_hat[0]
         self.Sigma_hat0 = Sigma_hat[0]
         self.M_hat = M_hat
-        self.M0 = M0 # for the initial estimation!
+        #self.M0 = M0 # for the initial estimation!
         self.mu_w = mu_w
         self.Sigma_w = Sigma_w
         if self.dist=="uniform":
@@ -81,10 +81,13 @@ class PO_WDRC:
         
         # BELOW SHOULD BE OPENED AFTER THE EXPERIMENT!!!!!
         
-        output = minimize(self.objective, x0=np.array([2*self.infimum_penalty]), method='L-BFGS-B', options={'maxfun': 100000, 'disp': False, 'maxiter': 100000})
-        print(output.message)
-        optimal_penalty = output.x[0]
-        #optimal_penalty = 10 # for test!
+        # output = minimize(self.objective, x0=np.array([2*self.infimum_penalty]), method='L-BFGS-B', options={'maxfun': 100000, 'disp': False, 'maxiter': 100000})
+        # print(output.message)
+        # optimal_penalty = output.x[0]
+        optimal_penalty = 1358.39 # for normal + normal,  
+        #optimal_penalty = 10 # for normal + uniform,
+        #optimal_penalty = 10 # for uniform + normal,
+        #optimal_penalty = 1290.41 # for uniform + uniform,
         print("DRKF Optimal penalty (lambda_star):", optimal_penalty)
         return optimal_penalty
 
@@ -117,9 +120,8 @@ class PO_WDRC:
         x_cov = np.zeros((self.T, self.nx, self.nx))
         sigma_wc = np.zeros((self.T, self.nx, self.nx))
         y = self.get_obs(self.x0_init, self.true_v_init)
-        # print("self.M0 ", self.M0.shape)
-        x0_mean, x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y, self.M0) #initial state estimation
-        
+        x0_mean, x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y, self.M_hat[0]) #initial state estimation
+
         for t in range(0, self.T-1):
             #x_cov[t+1] = self.kalman_filter_cov(x_cov[t], self.M0, sigma_wc[t])
             x_cov[t+1] = self.kalman_filter_cov(x_cov[t], self.M_hat[t], sigma_wc[t])
@@ -210,7 +212,8 @@ class PO_WDRC:
         params = sdp_prob.parameters()
         params[0].value = P
         params[1].value = S
-        params[2].value = np.linalg.cholesky(Sigma_hat)
+        #params[2].value = np.linalg.cholesky(Sigma_hat)
+        params[2].value = np.real(sqrtm(Sigma_hat + 1e-4*np.eye(self.nx)))
         params[3].value = x_cov
         
         sdp_prob.solve(solver=cp.MOSEK)
@@ -398,7 +401,7 @@ class PO_WDRC:
         # Double check Assumption 1
         if lambda_ <= np.max(np.linalg.eigvals(P)):
         #or lambda_ <= np.max(np.linalg.eigvals(P+S)):
-            print("t={}: PO_WDRC riccati False!!!!!!!!!".format(t))
+            print("t={}: DRKF riccati False!!!!!!!!!".format(t))
             return None
         r_ = self.A.T @ temp @ (r + P @ mu_hat)
         z_ = z + - lambda_* np.trace(Sigma_hat) \
@@ -406,8 +409,8 @@ class PO_WDRC:
         temp2 = np.linalg.solve(self.R, self.B.T)
         K = - temp2 @ temp @ P @ self.A
         L = - temp2 @ temp @ (r + P @ mu_hat)
-        h = np.linalg.inv(lambda_ * np.eye(self.nx) - P) @ (r + P @ self.B @ L + lambda_*mu_hat) #G
-        H = np.linalg.inv(lambda_* np.eye(self.nx)  - P) @ P @ (self.A + self.B @ K) #H
+        h = np.linalg.inv(lambda_ * np.eye(self.nx) - P) @ (r + P @ self.B @ L + lambda_*mu_hat)#G
+        H = np.linalg.inv(lambda_* np.eye(self.nx)  - P) @ P @ (self.A + self.B @ K)#H
         g = lambda_**2 * np.linalg.inv(lambda_*np.eye(self.nx) - P) @ Sigma_hat @ np.linalg.inv(lambda_*np.eye(self.nx) - P)    
         return P_, S_, r_, z_, K, L, H, h, g
 
@@ -448,7 +451,7 @@ class PO_WDRC:
         x[0] = self.x0_init
         y[0] = self.get_obs(x[0], true_v[0].reshape((-1,1))) #initial observation
 
-        x_mean[0], x_cov[0] = self.DR_kalman_filter(self.x0_mean, self.x0_cov, self.M0 ,y[0]) #initial state estimation
+        x_mean[0], x_cov[0] = self.DR_kalman_filter(self.x0_mean, self.x0_cov, self.M_hat[0] ,y[0]) #initial state estimation
         #x_mean[0], x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y[0])
 
         for t in range(self.T):
@@ -486,9 +489,14 @@ class PO_WDRC:
 
             #print("PO_WDRC time step: ",t)
             #Update the state estimation (using the worst-case mean and covariance)
+            #Worst Case x_mean and x_cov
             x_mean[t+1], x_cov[t+1] = self.DR_kalman_filter(x_mean[t], x_cov[t], self.M_hat[t], y[t+1], mu_wc[t], sigma_wc[t], u=u[t])
             #x_mean[t+1], x_cov[t+1] = self.DR_kalman_filter(x_mean[t], x_cov[t], self.M0, y[t+1], mu_wc[t], sigma_wc[t], u=u[t])
 
+            # #FOR TEST!!!
+            # #RUN Kalman filter again using above x_mean[t+1], x_cov[t+1] as a prediction
+            # x_mean[t+1], x_cov[t+1] = self.kalman_filter(x_mean[t+1], x_cov[t+1], y[t+1], self.M_hat[t], mu_wc[t], sigma_wc[t], u=u[t])
+            
             #Compute the total cost
             J[self.T] = x[self.T].T @ self.Qf @ x[self.T]
             for t in range(self.T-1, -1, -1):

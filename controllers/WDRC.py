@@ -4,10 +4,11 @@
 import numpy as np
 import time
 from scipy.optimize import minimize
+from scipy.linalg import sqrtm
 import cvxpy as cp
 
 class WDRC:
-    def __init__(self, theta, T, dist, noise_dist, system_data, mu_hat, Sigma_hat, M_hat, M0, x0_mean, x0_cov, x0_max, x0_min, mu_w, Sigma_w, w_max, w_min, v_max, v_min, true_v_init):
+    def __init__(self, theta, T, dist, noise_dist, system_data, mu_hat, Sigma_hat, M_hat, x0_mean, x0_cov, x0_max, x0_min, mu_w, Sigma_w, w_max, w_min, v_max, v_min, true_v_init):
         self.dist = dist
         self.noise_dist = noise_dist
         self.T = T
@@ -22,7 +23,7 @@ class WDRC:
         self.mu_hat0 = mu_hat[0]
         self.Sigma_hat0 = Sigma_hat[0]
         self.M_hat = M_hat
-        self.M0 = M0
+        #self.M0 = M0
         self.mu_w = mu_w #true
         self.Sigma_w = Sigma_w #true
         if self.dist=="uniform":
@@ -79,10 +80,13 @@ class WDRC:
         
         # BELOW SHOULD BE OPENED AFTER THE EXPERIMENT!!!!!
         
-        output = minimize(self.objective, x0=np.array([2*self.infimum_penalty]), method='L-BFGS-B', options={'maxfun': 100000, 'disp': False, 'maxiter': 100000})
-        print(output.message)
-        optimal_penalty = output.x[0]
-        #optimal_penalty = 10 # for TEST
+        # output = minimize(self.objective, x0=np.array([2*self.infimum_penalty]), method='L-BFGS-B', options={'maxfun': 100000, 'disp': False, 'maxiter': 100000})
+        # print(output.message)
+        # optimal_penalty = output.x[0]
+        optimal_penalty = 1358.39 # for normal + normal,  
+        #optimal_penalty = 10 # for normal + uniform,
+        #optimal_penalty = 10 # for uniform + normal,
+        #optimal_penalty = 1290.41 # for uniform + uniform,
         print("WDRC Optimal penalty (lambda_star):", optimal_penalty)
         return optimal_penalty
 
@@ -115,7 +119,7 @@ class WDRC:
         x_cov = np.zeros((self.T, self.nx, self.nx))
         sigma_wc = np.zeros((self.T, self.nx, self.nx))
         y = self.get_obs(self.x0_init, self.true_v_init)
-        x0_mean, x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y, self.M0) #initial state estimation
+        x0_mean, x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y, self.M_hat[0]) #initial state estimation
 
         for t in range(0, self.T-1):
             #x_cov[t+1] = self.kalman_filter_cov(x_cov[t], self.M0, sigma_wc[t])
@@ -207,7 +211,8 @@ class WDRC:
         params = sdp_prob.parameters()
         params[0].value = P
         params[1].value = S
-        params[2].value = np.linalg.cholesky(Sigma_hat)
+        #params[2].value = np.linalg.cholesky(Sigma_hat)
+        params[2].value = np.real(sqrtm(Sigma_hat + 1e-4*np.eye(self.nx)))
         params[3].value = x_cov
         
         #self.gen_sdp(self.lambda_, M_hat)
@@ -291,7 +296,18 @@ class WDRC:
         for t in range(self.T-1, -1, -1):
             self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t], self.H[t], self.h[t], self.g[t] = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat[t], self.mu_hat[t], self.lambda_, t)
             #self.P[t], self.S[t], self.r[t], self.z[t], self.K[t], self.L[t], self.H[t], self.h[t], self.g[t] = self.riccati(Phi, self.P[t+1], self.S[t+1], self.r[t+1], self.z[t+1], self.Sigma_hat0, self.mu_hat0, self.lambda_, t)
-    
+        
+        # self.x_cov = np.zeros((self.T+1, self.nx, self.nx))
+        # sigma_wc = np.zeros((self.T, self.nx, self.nx))
+
+        # self.x_cov[0] = self.kalman_filter_cov(self.x0_cov)
+        # for t in range(self.T):
+        #     sigma_wc[t], _, status = self.solve_sdp(self.sdp_prob, self.x_cov[t], self.P[t+1], self.S[t+1], self.Sigma_hat[t])
+        #     if status in ["infeasible", "unbounded"]:
+        #         print(status, 'False!!!!!!!!!!!!!')
+        #     self.x_cov[t+1] = self.kalman_filter_cov(self.x_cov[t], sigma_wc[t])
+            
+        
     def forward(self, true_w, true_v):
         #Apply the controller forward in time.
         start = time.time()
@@ -308,13 +324,13 @@ class WDRC:
 
         x[0] = self.x0_init
         y[0] = self.get_obs(x[0], true_v[0].reshape((-1,1))) #initial observation
-        x_mean[0], x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y[0], self.M0) #initial state estimation
+        x_mean[0], x_cov[0] = self.kalman_filter(self.x0_mean, self.x0_cov, y[0], self.M_hat[0]) #initial state estimation
 
         for t in range(self.T):
             #disturbance sampling
             mu_wc[t] = self.H[t] @ x_mean[t] + self.h[t] #worst-case mean
             sdp_prob = self.gen_sdp(self.lambda_, self.M_hat[t])
-            #sdp_prob = self.gen_sdp(self.lambda_, self.M0)
+            #sdp_prob = self.gen_sdp(self.lambda_, self.M)
             
             sigma_wc[t], _, status = self.solve_sdp(sdp_prob, x_cov[t], self.P[t+1], self.S[t+1], self.Sigma_hat[t])
             #sigma_wc[t], _, status = self.solve_sdp(sdp_prob, x_cov[t], self.P[t+1], self.S[t+1], self.Sigma_hat0)
